@@ -36,6 +36,39 @@ android {
     buildFeatures {
         compose = true
     }
+
+    // The blocklist format is shared with buildSrc, which builds blocklist.bin from the same code.
+    sourceSets["main"].java.srcDir("../blocklist-core/src")
+
+    // Stored uncompressed so the app can memory-map it (hashes don't compress anyway).
+    androidResources {
+        noCompress += "bin"
+    }
+}
+
+// ---- Blocklist (PRD §5): blocklists/*.txt -> blocklist.bin asset, with the grow-only check ----
+
+val blocklistDir = rootProject.layout.projectDirectory.dir("blocklists")
+
+androidComponents {
+    onVariants { variant ->
+        val task = tasks.register<BuildBlocklistTask>("build${variant.name.replaceFirstChar { it.uppercase() }}Blocklist") {
+            listDir.set(blocklistDir)
+        }
+        variant.sources.assets?.addGeneratedSourceDirectory(task, BuildBlocklistTask::outputDir)
+    }
+}
+
+// Unit tests load the real blocklist.bin, the same file the debug APK ships.
+tasks.withType<Test>().configureEach {
+    val bin = tasks.named<BuildBlocklistTask>("buildDebugBlocklist").flatMap { it.outputDir.file("blocklist.bin") }
+    inputs.file(bin).withPathSensitivity(PathSensitivity.NONE)
+    jvmArgumentProviders.add(CommandLineArgumentProvider { listOf("-Dfocusvpn.blocklist=${bin.get().asFile.absolutePath}") })
+}
+
+tasks.register<SnapshotReleasedBlocklistsTask>("snapshotReleasedBlocklists") {
+    description = "Records the current lists as the last release's, for the grow-only check. Run only when releasing."
+    listDir.set(blocklistDir)
 }
 
 kotlin {

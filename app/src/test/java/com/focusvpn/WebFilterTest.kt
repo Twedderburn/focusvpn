@@ -1,5 +1,7 @@
 package com.focusvpn
 
+import com.focusvpn.blocklist.Blocklist
+import com.focusvpn.blocklist.Category
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -12,7 +14,7 @@ class WebFilterTest {
     // ---- Blocklist matching ----
 
     @Test fun socialSitesAreNotBlockedByDefault() {
-        DnsFilter.setAdultListForTest(emptySet())
+        DnsFilter.setBlocklistForTest(LongArray(0))
         // Reddit and X were always-on in Focus Home; in FocusVPN they are opt-in Social toggles.
         listOf("reddit.com", "www.reddit.com", "x.com", "twitter.com")
             .forEach { assertFalse(it, DnsFilter.isBlocked(it)) }
@@ -33,35 +35,50 @@ class WebFilterTest {
     // ---- Adult sites ----
 
     @Test fun blocksBuiltInAdultSitesAndTlds() {
-        DnsFilter.setAdultListForTest(emptySet()) // built-ins work without the bundled list
+        DnsFilter.setBlocklistForTest(LongArray(0)) // built-ins work without the bundled list
         listOf(
             "pornhub.com", "www.pornhub.com", "xvideos.com", "onlyfans.com", "chaturbate.com",
             "anything.xxx", "example.porn", "site.sex", "www.example.adult", "rule34.xxx",
         ).forEach { assertTrue(it, DnsFilter.isBlocked(it)) }
     }
 
-    /** The real bundled file, read from the source tree. */
-    private fun bundledAdultList(): Set<String> {
-        val file = listOf("src/main/assets", "app/src/main/assets")
-            .map { java.io.File(it, DnsFilter.ADULT_LIST_ASSET) }
+    /** The source list, read from the source tree. */
+    private fun adultSourceList(): List<String> {
+        val file = listOf("../blocklists", "blocklists")
+            .map { java.io.File(it, "adult-domains.txt") }
             .first { it.exists() }
-        return file.readLines().map { it.trim() }.filter { it.isNotEmpty() && !it.startsWith('#') }.toHashSet()
+        return file.useLines { Blocklist.parseList(it).toList() }
+    }
+
+    /** The real blocklist.bin the build made for the debug APK, memory-mapped the way the app reads it. */
+    private fun bundledTable(): LongArray {
+        val path = System.getProperty("focusvpn.blocklist") ?: error("run through Gradle: focusvpn.blocklist not set")
+        return java.io.RandomAccessFile(path, "r").use { f ->
+            Blocklist.decode(f.channel.map(java.nio.channels.FileChannel.MapMode.READ_ONLY, 0, f.length()))
+        }
     }
 
     @Test fun bundledAdultListIsSaneAndBlocks() {
-        val list = bundledAdultList()
+        val list = adultSourceList()
         assertTrue("list size ${list.size}", list.size > 20_000)
         list.forEach { assertTrue("bad entry '$it'", it.contains('.') && it == it.lowercase() && !it.contains(' ')) }
-        DnsFilter.setAdultListForTest(list)
-        // Sites only in the bundled list, not the built-ins.
+        val table = bundledTable()
+        DnsFilter.setBlocklistForTest(table)
+        // The build tool and the app hash identically: every source name is in the shipped table, as adult.
+        list.forEach { assertEquals(it, Category.ADULT, DnsFilter.blockedBy(it)) }
+        // Sites only in the bundled list, not the built-ins, plus their subdomains.
+        val listed = list.toHashSet()
         listOf("www.youporngay.com", "sex.com", "www.adultfriendfinder.com", "www.xnxx.tv")
-            .filter { name -> generateSequence(name) { it.substringAfter('.', "").ifEmpty { null } }.any { it in list } }
+            .filter { name -> generateSequence(name) { it.substringAfter('.', "").ifEmpty { null } }.any { it in listed } }
             .also { assertTrue("expected some bundled-only hits", it.isNotEmpty()) }
-            .forEach { assertTrue(it, DnsFilter.isBlocked(it)) }
+            .forEach {
+                assertTrue(it, DnsFilter.isBlocked(it))
+                assertTrue(it, DnsFilter.isBlocked("deep.sub.$it"))
+            }
     }
 
     @Test fun bundledAdultListLeavesEverydaySitesAlone() {
-        DnsFilter.setAdultListForTest(bundledAdultList())
+        DnsFilter.setBlocklistForTest(bundledTable())
         listOf(
             "google.com", "www.google.com", "youtube.com", "gmail.com", "wikipedia.org", "en.wikipedia.org",
             "amazon.com", "apple.com", "microsoft.com", "github.com", "githubusercontent.com", "github.io",

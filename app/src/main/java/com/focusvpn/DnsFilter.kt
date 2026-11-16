@@ -11,9 +11,13 @@ import android.net.NetworkCapabilities
 import android.net.VpnService
 import android.os.SystemClock
 import android.os.UserManager
+import com.focusvpn.blocklist.Blocklist
+import com.focusvpn.blocklist.Category
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import java.nio.ByteBuffer
+import java.nio.channels.FileChannel
 
 /**
  * The web filter: a local VPN ([DnsFilterService]) that carries only DNS. Lookups for blocked domains get
@@ -33,7 +37,7 @@ object DnsFilter {
     )
 
     /**
-     * Adult sites. These are built in so they're blocked even if the bundled list ([ADULT_LIST_ASSET]) can't be read.
+     * Adult sites. These are built in so they're blocked even if the bundled list ([BLOCKLIST_ASSET]) can't be read.
      * "xxx", "porn", "sex" and "adult" are whole top-level domains that exist only for adult sites.
      */
     val ADULT_DOMAINS = setOf(
@@ -51,37 +55,60 @@ object DnsFilter {
         "literotica.com", "imagefap.com", "erome.com", "thothub.to", "coomer.su", "kemono.su",
     )
 
-    /** The bundled list of ~48,000 adult domains (from StevenBlack/hosts), one per line. */
-    const val ADULT_LIST_ASSET = "adult-domains.txt"
+    /**
+     * The bundled blocklist (PRD §5): ~640k adult domains as sorted 56-bit hashes with category bits, built from
+     * blocklists/<name>-domains.txt at build time. Memory-mapped and copied into one LongArray (~5 MB) on first use.
+     */
+    const val BLOCKLIST_ASSET = Blocklist.FILE_NAME
 
-    @Volatile private var adultList: Set<String> = emptySet()
+    @Volatile private var table: LongArray = LongArray(0)
 
-    /** Reads the bundled adult list once. Called by the filter before it answers its first lookup. */
-    fun loadAdultList(context: Context) {
-        if (adultList.isNotEmpty()) return
-        adultList = try {
-            context.assets.open(ADULT_LIST_ASSET).bufferedReader().useLines { lines ->
-                lines.map { it.trim() }.filter { it.isNotEmpty() && !it.startsWith('#') }.toHashSet()
+    /** Categories this phone blocks. Adult is always on; gambling and social will only ever be added (PRD §3). */
+    @Volatile private var enabledCategories: Int = Category.ADULT
+
+    /** Reads the bundled blocklist once. Called by the filter before it answers its first lookup. */
+    fun loadBlocklist(context: Context) {
+        if (table.isNotEmpty()) return
+        table = try {
+            // Stored uncompressed (noCompress "bin"), so it can be mapped straight from the APK.
+            context.assets.openFd(BLOCKLIST_ASSET).use { fd ->
+                fd.createInputStream().use { input ->
+                    Blocklist.decode(input.channel.map(FileChannel.MapMode.READ_ONLY, fd.startOffset, fd.length))
+                }
             }
         } catch (_: Exception) {
-            emptySet() // ADULT_DOMAINS still applies.
+            try {
+                context.assets.open(BLOCKLIST_ASSET).use { Blocklist.decode(ByteBuffer.wrap(it.readBytes())) }
+            } catch (_: Exception) {
+                LongArray(0) // ADULT_DOMAINS and BYPASS_DOMAINS still apply.
+            }
         }
     }
 
-    /** For tests: use this list in place of the bundled one. */
-    internal fun setAdultListForTest(list: Set<String>) {
-        adultList = list
+    /** For tests: use this table in place of the bundled one. */
+    internal fun setBlocklistForTest(t: LongArray) {
+        table = t
     }
 
-    fun isBlocked(name: String): Boolean {
-        var n = name.trimEnd('.').lowercase()
-        val adult = adultList
+    /**
+     * What blocks this name, as [Category] bits ([Category.BYPASS] for the encrypted-DNS names), or 0 if nothing
+     * does. Checks the name, then each parent, so every subdomain of a listed name is blocked too.
+     */
+    fun blockedBy(name: String): Int {
+        var n = Blocklist.normalize(name)
+        val t = table
+        val enabled = enabledCategories
         while (n.isNotEmpty()) {
-            if (n in BYPASS_DOMAINS || n in ADULT_DOMAINS || n in adult) return true
+            if (n in BYPASS_DOMAINS) return Category.BYPASS
+            if (n in ADULT_DOMAINS) return Category.ADULT
+            val bits = Blocklist.categoriesOf(t, n) and enabled
+            if (bits != 0) return bits
             n = n.substringAfter('.', "")
         }
-        return false
+        return 0
     }
+
+    fun isBlocked(name: String): Boolean = blockedBy(name) != 0
 
     private val _running = MutableStateFlow(false)
     val running: StateFlow<Boolean> = _running.asStateFlow()
