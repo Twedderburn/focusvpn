@@ -35,10 +35,10 @@ Last updated: 2026-11-17
 ## 4. Release
 - [x] Release keystore at D:\Android\keys\focusvpn.jks (password file outside the repo). Back this folder up somewhere safe: losing it strands every installed user
 - [x] Release build signed with the FocusVPN key (verified with apksigner: CN=FocusVPN)
-- [ ] GitHub repo Twedderburn/focusvpn (public, GPL-3.0) and first push (needs your OK)
-- [ ] GitHub Release with the APK
+- [x] GitHub repo Twedderburn/focusvpn (public, GPL-3.0) and first push (OK given 2026-11-17)
+- [x] GitHub Release with the APK (v0.1, FocusVPN.apk)
 - [x] Daily update check ("A new version with more blocked sites is ready") (checked on the emulator; the Download button opens the install guide)
-- [~] Pages install guide with Download button and QR code
+- [x] Pages install guide with Download button and QR code (live at https://twedderburn.github.io/focusvpn/; scan the QR code once with a real phone)
 - [x] Run snapshotReleasedBlocklists at release (v0.1)
 
 ## 5. On the Galaxy S25
