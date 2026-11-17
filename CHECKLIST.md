@@ -38,8 +38,8 @@ Last updated: 2026-11-17
 - [ ] GitHub repo Twedderburn/focusvpn (public, GPL-3.0) and first push (needs your OK)
 - [ ] GitHub Release with the APK
 - [x] Daily update check ("A new version with more blocked sites is ready") (checked on the emulator; the Download button opens the install guide)
-- [~] Pages install guide with Download button and QR code (docs/index.html written; the QR code needs a small download, and the page goes live with the GitHub push)
-- [ ] Run snapshotReleasedBlocklists at release
+- [~] Pages install guide with Download button and QR code
+- [x] Run snapshotReleasedBlocklists at release (v0.1)
 
 ## 5. On the Galaxy S25
 - [ ] Install the signed release APK
