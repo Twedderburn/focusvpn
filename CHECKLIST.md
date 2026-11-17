@@ -13,12 +13,12 @@ Last updated: 2026-11-16
 ## 1. SafeSearch and optional lists
 - [x] SafeSearch rewrite: google.* → forcesafesearch.google.com, bing.com → strict.bing.com, duckduckgo.com → safe.duckduckgo.com
 - [x] Test for the SafeSearch rewrite (6 tests)
-- [ ] Gambling list from HaGeZi, bundled as blocklists/gambling-domains.txt, with an update script
-- [ ] Social sites list (Reddit, X, TikTok, Instagram, Facebook, Snapchat; not YouTube)
-- [ ] YouTube Restricted Mode (restrict.youtube.com)
-- [ ] Custom sites (add only, never remove)
-- [ ] One-way toggles: 3-second hold, "You won't be able to undo this", saved so they can't be undone
-- [ ] Test: no way to loosen any setting
+- [ ] (waiting for your OK to download) Gambling list from HaGeZi, bundled as blocklists/gambling-domains.txt, with an update script
+- [x] Social sites list (Reddit, X, TikTok, Instagram, Facebook, Snapchat; not YouTube): filter side done, switches on the screen still to come
+- [x] YouTube Restricted Mode (restrict.youtube.com): filter side done
+- [x] Custom sites (add only, never remove): filter side done
+- [ ] One-way switches on screen (next): 3-second hold, "You won't be able to undo this", saved so they can't be undone
+- [x] Test: no way to loosen any setting (10 tests)
 
 ## 2. Setup and status
 - [ ] Five-screen setup flow in plain language

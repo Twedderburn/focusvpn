@@ -10,7 +10,9 @@ import java.nio.ByteOrder
 object Category {
     const val ADULT = 1
     const val GAMBLING = 2 // reserved: opt-in, PRD §4.2
-    const val SOCIAL = 4 // reserved: opt-in, PRD §4.2
+    const val SOCIAL = 4 // opt-in per site, PRD §4.2 (the sites are in the app, not the table)
+    /** Not a list category: sites the user added. Never stored in the table. */
+    const val CUSTOM = 8
     /** Not a list category: the built-in encrypted-DNS / bypass names. Never stored in the table. */
     const val BYPASS = 0x80
 

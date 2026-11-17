@@ -63,8 +63,29 @@ object DnsFilter {
 
     @Volatile private var table: LongArray = LongArray(0)
 
-    /** Categories this phone blocks. Adult is always on; gambling and social will only ever be added (PRD §3). */
+    /** What the user has switched on. Adult is always on; [apply] only ever adds to this (PRD §3). */
+    @Volatile var strictness: Strictness = Strictness()
+        private set
     @Volatile private var enabledCategories: Int = Category.ADULT
+    @Volatile private var extraBlocked: Map<String, Int> = emptyMap()
+
+    /** Switches on whatever [s] has on. Merged with what's already applied, so nothing can be switched off. */
+    @Synchronized
+    fun apply(s: Strictness) {
+        val merged = strictness.union(s)
+        enabledCategories = Category.ADULT or (if (merged.gambling) Category.GAMBLING else 0)
+        extraBlocked = merged.social.flatMap { it.domains }.associateWith { Category.SOCIAL } +
+            merged.customSites.associateWith { Category.CUSTOM }
+        strictness = merged
+    }
+
+    /** For tests: start again from nothing switched on. */
+    @Synchronized
+    internal fun resetStrictnessForTest() {
+        strictness = Strictness()
+        enabledCategories = Category.ADULT
+        extraBlocked = emptyMap()
+    }
 
     /** Reads the bundled blocklist once. Called by the filter before it answers its first lookup. */
     fun loadBlocklist(context: Context) {
@@ -98,9 +119,11 @@ object DnsFilter {
         var n = Blocklist.normalize(name)
         val t = table
         val enabled = enabledCategories
+        val extra = extraBlocked
         while (n.isNotEmpty()) {
             if (n in BYPASS_DOMAINS) return Category.BYPASS
             if (n in ADULT_DOMAINS) return Category.ADULT
+            extra[n]?.let { return it }
             val bits = Blocklist.categoriesOf(t, n) and enabled
             if (bits != 0) return bits
             n = n.substringAfter('.', "")

@@ -58,6 +58,7 @@ class DnsFilterService : VpnService() {
     private fun readLoop(pfd: ParcelFileDescriptor) {
         // Load the blocklist before answering anything; lookups wait in the tunnel meanwhile (well under a second).
         DnsFilter.loadBlocklist(this)
+        DnsFilter.apply(StrictnessStore.load(this))
         val input = FileInputStream(pfd.fileDescriptor)
         val buf = ByteArray(32_767)
         while (tun === pfd) {
@@ -79,7 +80,7 @@ class DnsFilterService : VpnService() {
     private fun handle(packet: ByteArray) {
         val q = Packets.parseDnsQuery(packet) ?: return
         val name = Dns.questionName(q.dns) ?: return
-        val safe = SafeSearch.target(name.first)
+        val safe = SafeSearch.target(name.first, DnsFilter.strictness.youtubeRestricted)
         when {
             DnsFilter.isBlocked(name.first) -> write(Packets.reply(q, Dns.nxdomain(q.dns, name.second)))
             safe != null -> pool?.execute { forwardSafeSearch(q, name.second, safe) }
