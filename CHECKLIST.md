@@ -53,4 +53,5 @@ Last updated: 2026-11-17
 - [x] v0.2 released on GitHub and installed on the S21 (2026-11-16 evening)
 - [ ] S21: the filter is off. The phone's log shows "always-on" was switched off from Settings at 20:48, before the v0.2 install. Open the app, tap OK, then redo the Keep it on step
 - [x] S21: the "allow notifications" question never appeared. Cause: Android already had its OK, so setup showed "The filter is on" and the button that asked was never tapped. Fixed (not released yet): it is now also asked when setup finishes and whenever the filter is turned on. Checked on the emulator with the OK already given
+- [x] Uninstall protection is a setup step: "Stop it being removed" comes after Keep it on. Cancel explains why and asks once more, then "Continue without it" appears. Phones already set up are not asked. If it was on and is switched off in Settings, a "Removal protection is off - tap to turn it back on" alert shows and the app asks again when opened. All checked on the emulator; not released yet
 - [ ] Check that an app update keeps the filter on (untested on a real phone: it was already off when v0.2 went on)

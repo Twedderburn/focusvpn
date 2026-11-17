@@ -263,7 +263,14 @@ class FocusAdminReceiver : DeviceAdminReceiver() {
     override fun onDisableRequested(context: Context, intent: Intent): CharSequence = DnsFilter.REMOVAL_WARNING
 
     override fun onEnabled(context: Context, intent: Intent) {
+        RemovalGuard.sync(context)
         DnsFilter.lockIn(context)
         DnsFilter.start(context)
+        FilterAlert.update(context)
+    }
+
+    /** Switched off in Settings: show "Removal protection is off" straight away. */
+    override fun onDisabled(context: Context, intent: Intent) {
+        FilterAlert.update(context, removalJustOff = true)
     }
 }

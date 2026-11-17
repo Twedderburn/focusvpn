@@ -23,7 +23,15 @@ class MainActivity : ComponentActivity() {
         askNotify()
     }
     private val notify = registerForActivityResult(ActivityResultContracts.RequestPermission()) { FilterAlert.update(this) }
+    private var onProtected: ((Boolean) -> Unit)? = null
+    private val protect = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
+        RemovalGuard.sync(this)
+        FilterAlert.update(this)
+        onProtected?.invoke(DnsFilter.isRemovalBlocked(this))
+        onProtected = null
+    }
     private var askedThisVisit = false
+    private var askedRemovalThisVisit = false
     private var askedNotify = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -33,7 +41,7 @@ class MainActivity : ComponentActivity() {
             var setupDone by rememberSaveable { mutableStateOf(SetupStore.isDone(this)) }
             var screen by rememberSaveable { mutableStateOf("status") }
             if (!setupDone) {
-                SetupScreen(onTurnOn = ::turnOn, onDone = { SetupStore.markDone(this); setupDone = true; askNotify() })
+                SetupScreen(onTurnOn = ::turnOn, onProtect = ::askProtect, onDone = { SetupStore.markDone(this); setupDone = true; askNotify() })
                 return@setContent
             }
             BackHandler(enabled = screen != "status") { screen = "status" }
@@ -48,6 +56,7 @@ class MainActivity : ComponentActivity() {
     override fun onResume() {
         super.onResume()
         DnsFilter.start(this) // No-op when already running or when Android still needs the user's OK.
+        RemovalGuard.sync(this)
         FilterAlert.update(this)
         UpdateCheck.maybeCheck(this)
         // Covers phones where the filter was OK'd before this permission was asked for. Once per launch.
@@ -56,12 +65,23 @@ class MainActivity : ComponentActivity() {
         if (SetupStore.isDone(this) && !askedThisVisit && !DnsFilter.hasConsent(this)) {
             askedThisVisit = true
             turnOn()
+        } else if (!askedRemovalThisVisit && RemovalGuard.isOffAgain(this)) {
+            // Protection was on and someone switched it off in Settings: ask again, once per visit.
+            askedRemovalThisVisit = true
+            askProtect {}
         }
+    }
+
+    /** Opens Android's "activate" screen for "Stop FocusVPN being removed"; reports whether it is now on. */
+    private fun askProtect(onResult: (Boolean) -> Unit) {
+        onProtected = onResult
+        runCatching { protect.launch(DnsFilter.removalBlockIntent(this)) }.onFailure { onProtected = null; onResult(false) }
     }
 
     override fun onStop() {
         super.onStop()
         askedThisVisit = false
+        askedRemovalThisVisit = false
     }
 
     /** Shows Android's VPN consent dialog if needed, then starts the filter. */

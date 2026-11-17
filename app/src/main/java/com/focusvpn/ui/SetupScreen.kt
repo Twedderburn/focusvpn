@@ -34,6 +34,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.focusvpn.DnsFilter
+import com.focusvpn.RemovalGuard
 
 /** Whether the first-run setup (PRD §4.5) has been finished. */
 object SetupStore {
@@ -79,7 +80,7 @@ fun alwaysOnSteps(maker: PhoneMaker): List<String> = when (maker) {
 
 /** Screens 1 to 4; finishing screen 4 is screen 5, "Done": the status screen (PRD §4.5). */
 @Composable
-fun SetupScreen(onTurnOn: () -> Unit, onDone: () -> Unit) {
+fun SetupScreen(onTurnOn: () -> Unit, onProtect: (onResult: (Boolean) -> Unit) -> Unit, onDone: () -> Unit) {
     val context = LocalContext.current
     var step by rememberSaveable { mutableIntStateOf(0) }
     var extras by rememberSaveable { mutableStateOf(false) }
@@ -124,7 +125,7 @@ fun SetupScreen(onTurnOn: () -> Unit, onDone: () -> Unit) {
                     }
                 }
             }
-            else -> {
+            3 -> {
                 val maker = phoneMaker(Build.MANUFACTURER, Build.BRAND)
                 Title("Keep it on")
                 Body("One more setting keeps the filter on after a restart, and stops other apps switching it off.")
@@ -136,8 +137,31 @@ fun SetupScreen(onTurnOn: () -> Unit, onDone: () -> Unit) {
                 }
                 Next("Open settings") { openAlwaysOnSettings(context) }
                 Spacer(Modifier.height(16.dp))
-                OutlinedButton(onClick = onDone, modifier = Modifier.fillMaxWidth().height(56.dp)) {
+                OutlinedButton(onClick = { step = 4 }, modifier = Modifier.fillMaxWidth().height(56.dp)) {
                     Text("Done, I turned it on", fontSize = 18.sp)
+                }
+            }
+            else -> {
+                var cancels by rememberSaveable { mutableIntStateOf(0) }
+                Title("Stop it being removed")
+                if (DnsFilter.isRemovalBlocked(context)) {
+                    Body("FocusVPN can't be uninstalled now ✓")
+                    Next("Finish", onDone)
+                } else {
+                Body("This stops anyone uninstalling FocusVPN, so the filter stays on this phone.")
+                Body("Android will ask you to activate it. Tap Activate.")
+                if (cancels > 0) {
+                    Body("Without this, FocusVPN can be uninstalled in a few taps and adult sites would no longer be blocked.")
+                }
+                Next(if (cancels == 0) "Stop it being removed" else "Try again") {
+                    onProtect { ok -> if (ok) onDone() else cancels++ }
+                }
+                if (RemovalGuard.canSkipInSetup(cancels)) {
+                    Spacer(Modifier.height(16.dp))
+                    OutlinedButton(onClick = onDone, modifier = Modifier.fillMaxWidth().height(56.dp)) {
+                        Text("Continue without it", fontSize = 18.sp)
+                    }
+                }
                 }
             }
         }
