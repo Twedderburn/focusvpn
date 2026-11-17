@@ -1,7 +1,7 @@
 # FocusVPN: remaining steps
 
 Claude updates this as the work moves. `[x]` = done, `[~]` = in progress, `[ ]` = not started.
-Last updated: 2026-11-16
+Last updated: 2026-11-17
 
 ## Done so far
 - [x] PRD written
@@ -22,10 +22,10 @@ Last updated: 2026-11-16
 - [x] Test: no way to loosen any setting (10 tests)
 
 ## 2. Setup and status
-- [ ] Five-screen setup flow in plain language
-- [ ] Samsung and Pixel "always-on" step cards
-- [ ] Status screen: Protected / Not protected, "Test a site" (Blocked: <category> / Not blocked)
-- [ ] Hidden Advanced: device-owner lock-in instructions (adb)
+- [x] Five-screen setup flow in plain language (checked on the emulator: welcome, extras, turn on, keep it on, status)
+- [x] Samsung and Pixel "always-on" step cards (Pixel cards and "Open settings" checked on the emulator; Samsung cards check on the S25)
+- [x] Status screen: Protected / Not protected, "Test a site" (Blocked: <category> / Not blocked)
+- [x] Hidden Advanced: device-owner lock-in instructions (adb). Tap the status title 7 times. Lock-in now also blocks uninstall; blocking "clear data" is not done yet
 
 ## 3. When protection drops
 - [ ] Notification: "Your filter is off - tap to turn it back on"

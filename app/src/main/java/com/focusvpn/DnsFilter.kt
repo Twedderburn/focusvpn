@@ -197,6 +197,7 @@ object DnsFilter {
         runCatching { dpm.setGlobalPrivateDnsModeOpportunistic(admin) }
         runCatching { dpm.addUserRestriction(admin, UserManager.DISALLOW_CONFIG_VPN) }
         runCatching { dpm.addUserRestriction(admin, UserManager.DISALLOW_CONFIG_PRIVATE_DNS) }
+        runCatching { dpm.setUninstallBlocked(admin, context.packageName, true) }
     }
 
     /** DNS servers of the real (non-VPN) networks, then public fallbacks. */

@@ -10,7 +10,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import com.focusvpn.ui.AdvancedScreen
 import com.focusvpn.ui.MoreBlockingScreen
+import com.focusvpn.ui.SetupScreen
+import com.focusvpn.ui.SetupStore
 import com.focusvpn.ui.StatusScreen
 
 class MainActivity : ComponentActivity() {
@@ -22,10 +25,18 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         DnsFilter.lockIn(this)
         setContent {
-            var more by rememberSaveable { mutableStateOf(false) }
-            BackHandler(enabled = more) { more = false }
-            if (more) MoreBlockingScreen(onBack = { more = false })
-            else StatusScreen(onTurnOn = ::turnOn, onMore = { more = true })
+            var setupDone by rememberSaveable { mutableStateOf(SetupStore.isDone(this)) }
+            var screen by rememberSaveable { mutableStateOf("status") }
+            if (!setupDone) {
+                SetupScreen(onTurnOn = ::turnOn, onDone = { SetupStore.markDone(this); setupDone = true })
+                return@setContent
+            }
+            BackHandler(enabled = screen != "status") { screen = "status" }
+            when (screen) {
+                "more" -> MoreBlockingScreen(onBack = { screen = "status" })
+                "advanced" -> AdvancedScreen(onBack = { screen = "status" })
+                else -> StatusScreen(onTurnOn = ::turnOn, onMore = { screen = "more" }, onAdvanced = { screen = "advanced" })
+            }
         }
     }
 
