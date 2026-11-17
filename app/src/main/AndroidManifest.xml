@@ -41,7 +41,7 @@
             </intent-filter>
         </receiver>
 
-        <!-- Inert unless FocusVPN is made device owner with adb (Advanced); then it locks the filter on. -->
+        <!-- Switched on from "Block more" to stop uninstalling; as device owner (adb, Advanced) it locks the filter on. -->
         <receiver
             android:name=".FocusAdminReceiver"
             android:exported="true"
@@ -51,6 +51,7 @@
                 android:resource="@xml/device_admin" />
             <intent-filter>
                 <action android:name="android.app.action.DEVICE_ADMIN_ENABLED" />
+                <action android:name="android.app.action.DEVICE_ADMIN_DISABLE_REQUESTED" />
             </intent-filter>
         </receiver>
     </application>

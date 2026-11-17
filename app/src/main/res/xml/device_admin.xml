@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- No admin policies: device owner is only used to pin the web filter as the always-on VPN. -->
+<!-- No admin policies. Being an active admin app is enough to stop Android uninstalling FocusVPN;
+     device owner (Advanced) also pins the filter as the always-on VPN. -->
 <device-admin>
     <uses-policies />
 </device-admin>

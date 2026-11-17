@@ -37,6 +37,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.runtime.LaunchedEffect
+import kotlinx.coroutines.delay
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
@@ -65,6 +67,13 @@ fun MoreBlockingScreen(onBack: () -> Unit) {
     fun save(next: Strictness) {
         s = StrictnessStore.save(context, next)
     }
+    var removalBlocked by remember { mutableStateOf(DnsFilter.isRemovalBlocked(context)) }
+    LaunchedEffect(Unit) {
+        while (true) { // Android's own screen switches this on, so re-check after coming back from it.
+            removalBlocked = DnsFilter.isRemovalBlocked(context)
+            delay(1_000)
+        }
+    }
 
     MaterialTheme {
         Surface(Modifier.fillMaxSize()) {
@@ -91,13 +100,23 @@ fun MoreBlockingScreen(onBack: () -> Unit) {
                 Spacer(Modifier.height(24.dp))
                 Text("Other sites", fontSize = 22.sp, fontWeight = FontWeight.SemiBold)
                 CustomSites(s) { save(it) }
+
+                Spacer(Modifier.height(24.dp))
+                Text("Keep it installed", fontSize = 22.sp, fontWeight = FontWeight.SemiBold)
+                OptionRow(
+                    "Stop FocusVPN being removed", "Android won't uninstall it while this is on",
+                    removalBlocked, onText = "On ✓", holdText = "Hold to turn on",
+                ) { runCatching { context.startActivity(DnsFilter.removalBlockIntent(context)) } }
             }
         }
     }
 }
 
 @Composable
-private fun OptionRow(title: String, detail: String?, on: Boolean, onConfirmed: () -> Unit) {
+private fun OptionRow(
+    title: String, detail: String?, on: Boolean,
+    onText: String = "Blocked ✓", holdText: String = "Hold to block", onConfirmed: () -> Unit,
+) {
     Column(Modifier.fillMaxWidth().padding(vertical = 10.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
@@ -106,9 +125,9 @@ private fun OptionRow(title: String, detail: String?, on: Boolean, onConfirmed: 
             }
             Spacer(Modifier.width(12.dp))
             if (on) {
-                Text("Blocked ✓", fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
+                Text(onText, fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
             } else {
-                HoldToConfirm("Hold to block", Modifier.width(160.dp), onConfirmed)
+                HoldToConfirm(holdText, Modifier.width(160.dp), onConfirmed)
             }
         }
         HorizontalDivider(Modifier.padding(top = 10.dp))

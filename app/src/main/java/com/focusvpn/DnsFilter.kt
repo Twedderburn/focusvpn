@@ -181,6 +181,28 @@ object DnsFilter {
         return _running.value && !bypassCached
     }
 
+    const val REMOVAL_EXPLANATION =
+        "While this is on, Android won't uninstall FocusVPN. That keeps the filter on this phone."
+    const val REMOVAL_WARNING =
+        "If you turn this off, FocusVPN can be removed from this phone and adult sites will no longer be blocked."
+
+    /** True while Android refuses to uninstall FocusVPN: it is an active device admin app (or the device owner). */
+    fun isRemovalBlocked(context: Context): Boolean = try {
+        context.getSystemService(DevicePolicyManager::class.java)
+            ?.isAdminActive(ComponentName(context, FocusAdminReceiver::class.java)) == true
+    } catch (_: Exception) {
+        false
+    }
+
+    /**
+     * Opens Android's own "activate device admin app" screen. FocusVPN asks for no admin powers at all; being
+     * active is the whole point, because Android greys out Uninstall for an active admin app.
+     */
+    fun removalBlockIntent(context: Context): Intent =
+        Intent(DevicePolicyManager.ACTION_ADD_DEVICE_ADMIN)
+            .putExtra(DevicePolicyManager.EXTRA_DEVICE_ADMIN, ComponentName(context, FocusAdminReceiver::class.java))
+            .putExtra(DevicePolicyManager.EXTRA_ADD_EXPLANATION, REMOVAL_EXPLANATION)
+
     fun isDeviceOwner(context: Context): Boolean =
         context.getSystemService(DevicePolicyManager::class.java)?.isDeviceOwnerApp(context.packageName) == true
 
@@ -232,8 +254,14 @@ class BootReceiver : BroadcastReceiver() {
     }
 }
 
-/** Does nothing unless FocusVPN is made device owner with adb; then it locks the filter in. */
+/**
+ * Two uses. Switched on from "Block more", it only stops Android uninstalling FocusVPN. Made device owner with
+ * adb (Advanced), it also locks the filter in.
+ */
 class FocusAdminReceiver : DeviceAdminReceiver() {
+    /** Android shows this before letting anyone switch the protection off in Settings. */
+    override fun onDisableRequested(context: Context, intent: Intent): CharSequence = DnsFilter.REMOVAL_WARNING
+
     override fun onEnabled(context: Context, intent: Intent) {
         DnsFilter.lockIn(context)
         DnsFilter.start(context)
