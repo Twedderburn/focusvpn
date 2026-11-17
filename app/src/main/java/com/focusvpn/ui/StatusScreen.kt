@@ -34,7 +34,11 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
+import android.content.Intent
+import android.net.Uri
+import androidx.compose.material3.Card
 import com.focusvpn.DnsFilter
+import com.focusvpn.UpdateCheck
 import com.focusvpn.Strictness
 import com.focusvpn.StrictnessStore
 import com.focusvpn.blocklist.Category
@@ -90,10 +94,12 @@ fun StatusScreen(onTurnOn: () -> Unit, onMore: () -> Unit, onAdvanced: () -> Uni
     val running by DnsFilter.running.collectAsState()
     var hasConsent by remember { mutableStateOf(DnsFilter.hasConsent(context)) }
     var bypass by remember { mutableStateOf(DnsFilter.privateDnsBypass(context)) }
+    var updateReady by remember { mutableStateOf(UpdateCheck.updateReady(context)) }
     LaunchedEffect(Unit) {
         while (true) { // Consent and Private DNS change outside the app, so re-check them.
             hasConsent = DnsFilter.hasConsent(context)
             bypass = DnsFilter.privateDnsBypass(context)
+            updateReady = UpdateCheck.updateReady(context)
             delay(2_000)
         }
     }
@@ -123,6 +129,26 @@ fun StatusScreen(onTurnOn: () -> Unit, onMore: () -> Unit, onAdvanced: () -> Uni
                     Spacer(Modifier.height(32.dp))
                     Button(onClick = onTurnOn, modifier = Modifier.fillMaxWidth().height(64.dp)) {
                         Text("Turn on the filter", fontSize = 20.sp)
+                    }
+                }
+                if (updateReady) {
+                    Spacer(Modifier.height(32.dp))
+                    Card(Modifier.fillMaxWidth()) {
+                        Column(Modifier.padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(UpdateCheck.MESSAGE, fontSize = 18.sp, textAlign = TextAlign.Center)
+                            Spacer(Modifier.height(12.dp))
+                            Button(
+                                onClick = {
+                                    runCatching {
+                                        context.startActivity(
+                                            Intent(Intent.ACTION_VIEW, Uri.parse(UpdateCheck.DOWNLOAD_PAGE))
+                                                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+                                        )
+                                    }
+                                },
+                                modifier = Modifier.fillMaxWidth().height(56.dp),
+                            ) { Text("Download", fontSize = 18.sp) }
+                        }
                     }
                 }
                 Spacer(Modifier.height(48.dp))

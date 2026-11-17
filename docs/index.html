@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Install FocusVPN</title>
+<style>
+  :root { --bg:#fdf8ff; --fg:#1c1b1f; --soft:#49454f; --card:#ece6f0; --accent:#6750a4; --on:#fff; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#141218; --fg:#e6e0e9; --soft:#cac4d0; --card:#2b2930; --accent:#d0bcff; --on:#381e72; } }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--fg); font:20px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; }
+  main { max-width:640px; margin:0 auto; padding:32px 16px 64px; }
+  h1 { font-size:2rem; line-height:1.2; margin:0 0 8px; }
+  h2 { font-size:1.4rem; margin:40px 0 12px; }
+  p { margin:0 0 16px; }
+  .lead { color:var(--soft); }
+  .btn { display:block; text-align:center; background:var(--accent); color:var(--on); font-weight:700; font-size:1.3rem; padding:20px; border-radius:40px; text-decoration:none; margin:24px 0 8px; }
+  .small { font-size:.85rem; color:var(--soft); text-align:center; }
+  ol { list-style:none; counter-reset:s; padding:0; margin:0; }
+  ol li { counter-increment:s; background:var(--card); border-radius:16px; padding:16px 16px 16px 60px; margin:0 0 12px; position:relative; }
+  ol li::before { content:counter(s); position:absolute; left:16px; top:16px; width:32px; height:32px; border-radius:50%; background:var(--accent); color:var(--on); font-weight:700; display:grid; place-items:center; font-size:1rem; }
+  .warn { border:2px solid var(--accent); border-radius:16px; padding:16px; }
+  .qr { text-align:center; margin:24px 0; }
+  .qr svg { width:220px; height:220px; background:#fff; padding:12px; border-radius:16px; }
+  a { color:var(--accent); }
+</style>
+</head>
+<body>
+<main>
+  <h1>FocusVPN</h1>
+  <p class="lead">Blocks adult sites on an Android phone, in every app and browser. Free, with no account and no tracking.</p>
+
+  <div class="warn">
+    <strong>It's built to be permanent.</strong> Once it's on, there's no off switch and nothing can be unblocked. Only install it if that's what you want.
+  </div>
+
+  <a class="btn" href="https://github.com/Twedderburn/focusvpn/releases/latest/download/FocusVPN.apk">Download FocusVPN</a>
+  <p class="small">For Android 10 and newer. About 12 MB.</p>
+
+  <!--QR-->
+
+  <h2>How to install</h2>
+  <ol>
+    <li>On your Android phone, tap <strong>Download FocusVPN</strong> above.</li>
+    <li>When the download finishes, tap <strong>Open</strong>. You can also find it in your Downloads.</li>
+    <li>Your phone may say it can't install apps from this source. Tap <strong>Settings</strong>, switch on <strong>Allow from this source</strong>, then go back.</li>
+    <li>Tap <strong>Install</strong>, then <strong>Open</strong>.</li>
+    <li>Follow the steps in the app. It takes about two minutes.</li>
+  </ol>
+
+  <h2>What to expect</h2>
+  <p>During setup your phone will show a "Connection request". That's normal. FocusVPN only looks at the names of the sites your phone asks for, and it does that on the phone. Nothing is sent anywhere.</p>
+  <p>After setup you'll see a small key at the top of your screen. That means the filter is on.</p>
+  <p>Google, Bing and DuckDuckGo are kept on their safe search setting.</p>
+
+  <h2>Updates</h2>
+  <p>The app tells you when a new version with more blocked sites is ready. Come back to this page to get it. Updates only ever add sites.</p>
+
+  <p class="small">FocusVPN is open source under the GPL-3.0 licence. <a href="https://github.com/Twedderburn/focusvpn">See the code</a>.</p>
+</main>
+</body>
+</html>

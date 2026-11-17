@@ -1,3 +1,4 @@
+import java.util.Properties
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
@@ -18,13 +19,27 @@ android {
         versionName = "0.1"
     }
 
+    // The release key lives outside the repo (PRD §5). The properties file names the keystore, the alias and a
+    // file holding the password. Point FOCUSVPN_SIGNING at another file to build with a different key.
+    val signingFile = file(System.getenv("FOCUSVPN_SIGNING") ?: "D:/Android/keys/focusvpn.properties")
+    if (signingFile.isFile) {
+        val p = Properties().apply { signingFile.inputStream().use { load(it) } }
+        val pass = file(p.getProperty("storePasswordFile")).readText().trim()
+        signingConfigs.create("focusvpn") {
+            storeFile = file(p.getProperty("storeFile"))
+            storePassword = pass
+            keyAlias = p.getProperty("keyAlias")
+            keyPassword = pass
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
-            // TODO: switch to the FocusVPN release key (D:\Android\keys\focusvpn.jks) before the first public release.
-            signingConfig = signingConfigs.getByName("debug")
+            // The FocusVPN key when its properties file is on this machine; anyone else's build gets the debug key.
+            signingConfig = signingConfigs.findByName("focusvpn") ?: signingConfigs.getByName("debug")
         }
     }
 

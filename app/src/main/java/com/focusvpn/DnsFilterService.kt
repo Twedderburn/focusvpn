@@ -145,6 +145,7 @@ class DnsFilterService : VpnService() {
         val now = SystemClock.elapsedRealtime()
         if (upstreams.isEmpty() || now - upstreamsAt > 15_000) {
             upstreams = DnsFilter.upstreams(this)
+            UpdateCheck.maybeCheck(this) // The service outlives the screen, so the daily check rides along here.
             upstreamsAt = now
         }
         upstreams

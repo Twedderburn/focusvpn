@@ -50,6 +50,7 @@ class MainActivity : ComponentActivity() {
         super.onResume()
         DnsFilter.start(this) // No-op when already running or when Android still needs the user's OK.
         FilterAlert.update(this)
+        UpdateCheck.maybeCheck(this)
         // Covers phones where the filter was OK'd before this permission was asked for. Once per launch.
         if (SetupStore.isDone(this) && !askedNotify && DnsFilter.hasConsent(this) && !FilterAlert.canNotify(this)) {
             askedNotify = true
