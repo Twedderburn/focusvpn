@@ -33,12 +33,12 @@ Last updated: 2026-11-17
 - [x] Handle onRevoke (another VPN took over): comes straight back if allowed, otherwise shows the notification (a real second VPN app is checked on the S25)
 
 ## 4. Release
-- [ ] Release keystore at D:\Android\keys\focusvpn.jks (password file outside the repo)
-- [ ] Release build signed with the FocusVPN key
+- [x] Release keystore at D:\Android\keys\focusvpn.jks (password file outside the repo). Back this folder up somewhere safe: losing it strands every installed user
+- [x] Release build signed with the FocusVPN key (verified with apksigner: CN=FocusVPN)
 - [ ] GitHub repo Twedderburn/focusvpn (public, GPL-3.0) and first push (needs your OK)
 - [ ] GitHub Release with the APK
-- [ ] Daily update check ("A new version with more blocked sites is ready")
-- [ ] Pages install guide with Download button and QR code
+- [x] Daily update check ("A new version with more blocked sites is ready") (checked on the emulator; the Download button opens the install guide)
+- [~] Pages install guide with Download button and QR code (docs/index.html written; the QR code needs a small download, and the page goes live with the GitHub push)
 - [ ] Run snapshotReleasedBlocklists at release
 
 ## 5. On the Galaxy S25
