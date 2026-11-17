@@ -50,3 +50,7 @@ Last updated: 2026-11-17
 
 ## 6. After v0.1
 - [x] Uninstall protection: "Stop FocusVPN being removed" in Block more (3-second hold, then Android's own screen). Checked on the emulator: uninstall is refused while it's on. It can still be switched off in Settings, Device admin apps, where Android shows a warning first. Released in v0.2
+- [x] v0.2 released on GitHub and installed on the S21 (2026-11-16 evening)
+- [ ] S21: the filter is off. The phone's log shows "always-on" was switched off from Settings at 20:48, before the v0.2 install. Open the app, tap OK, then redo the Keep it on step
+- [ ] S21: the "allow notifications" question was never answered, so the "Your filter is off" alert could not show. Find out why the question didn't appear during setup
+- [ ] Check that an app update keeps the filter on (untested on a real phone: it was already off when v0.2 went on)
