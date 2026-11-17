@@ -77,8 +77,9 @@ class WebFilterTest {
             }
     }
 
-    @Test fun bundledAdultListLeavesEverydaySitesAlone() {
+    @Test fun bundledListsLeaveEverydaySitesAlone() {
         DnsFilter.setBlocklistForTest(bundledTable())
+        DnsFilter.apply(Strictness.NONE.withGambling()) // with gambling on too
         listOf(
             "google.com", "www.google.com", "youtube.com", "gmail.com", "wikipedia.org", "en.wikipedia.org",
             "amazon.com", "apple.com", "microsoft.com", "github.com", "githubusercontent.com", "github.io",
@@ -86,8 +87,19 @@ class WebFilterTest {
             "cloudfront.net", "amazonaws.com", "akamaihd.net", "fastly.net", "cloudflare.com", "googleapis.com",
             "gstatic.com", "whatsapp.com", "instagram.com", "facebook.com", "netflix.com", "spotify.com",
             "dropbox.com", "claude.ai", "anthropic.com", "bbc.co.uk", "nytimes.com", "samsung.com", "sussex.ac.uk",
-            "essex.gov.uk", "middlesex.edu", "adultlearning.org.uk",
+            "essex.gov.uk", "middlesex.edu", "adultlearning.org.uk", "bbc.com", "nationalrail.co.uk",
         ).forEach { assertFalse(it, DnsFilter.isBlocked(it)) }
+        DnsFilter.resetStrictnessForTest()
+    }
+
+    @Test fun bundledGamblingListBlocksOnlyWhenSwitchedOn() {
+        DnsFilter.resetStrictnessForTest()
+        DnsFilter.setBlocklistForTest(bundledTable())
+        val sites = listOf("bet365.com", "www.pokerstars.com", "draftkings.com", "williamhill.com")
+        sites.forEach { assertFalse(it, DnsFilter.isBlocked(it)) }
+        DnsFilter.apply(Strictness.NONE.withGambling())
+        sites.forEach { assertEquals(it, Category.GAMBLING, DnsFilter.blockedBy(it)) }
+        DnsFilter.resetStrictnessForTest()
     }
 
     // ---- DNS / packet handling ----

@@ -90,6 +90,24 @@ class StrictnessTest {
         listOf("", "com", "not a site", "http://", "exa_mple.com", "-bad.com").forEach { assertNull(it, Strictness.normalizeSite(it)) }
     }
 
+    @Test fun essentialServicesCantBeAddedAsCustomSites() {
+        listOf("google.com", "www.google.com", "mail.google.com", "https://accounts.google.com/x", "googleapis.com",
+            "icloud.com", "whatsapp.net", "nhs.uk", "www.gov.uk", "github.com", "co.uk", "com.au")
+            .forEach {
+                assertNull(it, Strictness.NONE.withCustomSite(it))
+                assertTrue(it, Strictness.siteProblem(it) != null)
+            }
+        listOf("youtube.com", "netflix.com", "example.co.uk", "notgoogle.com", "google.example.com")
+            .forEach { assertNull(it, Strictness.siteProblem(it)) }
+        assertTrue(Strictness.siteProblem("mail.google.com")!!.contains("google.com"))
+    }
+
+    @Test fun essentialServicesAreNotOnAnyBundledList() {
+        val bin = System.getProperty("focusvpn.blocklist") ?: error("run through Gradle")
+        val table = Blocklist.decode(java.nio.ByteBuffer.wrap(java.io.File(bin).readBytes()))
+        Strictness.ESSENTIAL.forEach { assertEquals(it, 0, Blocklist.match(table, it, 0xFF)) }
+    }
+
     @Test fun youtubeRestrictedModeOnlyWhenSwitchedOn() {
         assertNull(SafeSearch.target("www.youtube.com"))
         listOf("www.youtube.com", "m.youtube.com", "youtubei.googleapis.com", "youtube.googleapis.com", "www.youtube-nocookie.com")

@@ -30,8 +30,9 @@ class Strictness internal constructor(
     fun withYoutubeRestricted() = union(Strictness(youtubeRestricted = true))
     fun withSocial(site: SocialSite) = union(Strictness(social = setOf(site)))
 
-    /** Adds a site the user typed. Null if it isn't a usable site name. */
-    fun withCustomSite(input: String): Strictness? = normalizeSite(input)?.let { union(Strictness(customSites = setOf(it))) }
+    /** Adds a site the user typed. Null if it isn't a usable site name or [siteProblem] refuses it. */
+    fun withCustomSite(input: String): Strictness? =
+        if (siteProblem(input) != null) null else union(Strictness(customSites = setOf(normalizeSite(input)!!)))
 
     /** Both together: what's on in either. Used when saving, so nothing already on can be lost. */
     fun union(other: Strictness) = Strictness(
@@ -56,6 +57,40 @@ class Strictness internal constructor(
         val NONE = Strictness()
 
         private val SITE = Regex("""[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?(\.[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)+""")
+
+        /**
+         * Services a phone needs to work: sign-in, updates, maps, messages, the NHS and government, and this app's
+         * own updates. Blocking one could never be undone, so custom sites refuse them and anything under them.
+         */
+        val ESSENTIAL = setOf(
+            // Google and Android: sign-in, Play, updates, maps, Gmail
+            "google.com", "googleapis.com", "gstatic.com", "googleusercontent.com", "gvt1.com", "gvt2.com",
+            "android.com", "google.co.uk", "gmail.com",
+            // Apple, Microsoft, Samsung
+            "apple.com", "icloud.com", "mzstatic.com", "microsoft.com", "live.com", "outlook.com", "office.com",
+            "microsoftonline.com", "windows.net", "samsung.com", "samsungcloud.com", "samsungapps.com",
+            // Messages and calls
+            "whatsapp.com", "whatsapp.net", "signal.org",
+            // Health, government, money
+            "nhs.uk", "gov.uk", "paypal.com",
+            // The internet's plumbing: many sites load through these
+            "cloudflare.com", "akamai.net", "akamaihd.net", "akamaized.net", "fastly.net", "cloudfront.net",
+            "amazonaws.com",
+            // FocusVPN's own update check and install guide
+            "github.com", "githubusercontent.com", "github.io",
+        )
+
+        /** Endings shared by many unrelated sites, like co.uk. */
+        private val SHARED_ENDING = Regex("""(co|com|org|net|gov|ac|edu|ltd|plc|me|nhs|sch|police|mod)\.[a-z]{2}""")
+
+        /** Why [input] can't be added as a custom site, in plain words, or null if it can. */
+        fun siteProblem(input: String): String? {
+            val site = normalizeSite(input) ?: return "That doesn't look like a website address."
+            if (SHARED_ENDING.matches(site)) return "That's the ending of many websites, not one website."
+            val essential = generateSequence(site) { it.substringAfter('.', "").ifEmpty { null } }.firstOrNull { it in ESSENTIAL }
+            if (essential != null) return "Your phone needs $essential to work, so it can't be blocked."
+            return null
+        }
 
         /** "https://www.Example.com/page" -> "example.com". Null if it isn't a site name. */
         fun normalizeSite(input: String): String? {
