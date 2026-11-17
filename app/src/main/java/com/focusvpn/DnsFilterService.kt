@@ -79,30 +79,44 @@ class DnsFilterService : VpnService() {
     private fun handle(packet: ByteArray) {
         val q = Packets.parseDnsQuery(packet) ?: return
         val name = Dns.questionName(q.dns) ?: return
-        if (DnsFilter.isBlocked(name.first)) {
-            write(Packets.reply(q, Dns.nxdomain(q.dns, name.second)))
-        } else {
-            pool?.execute { forward(q) }
+        val safe = SafeSearch.target(name.first)
+        when {
+            DnsFilter.isBlocked(name.first) -> write(Packets.reply(q, Dns.nxdomain(q.dns, name.second)))
+            safe != null -> pool?.execute { forwardSafeSearch(q, name.second, safe) }
+            else -> pool?.execute { exchange(q.dns)?.let { write(Packets.reply(q, it)) } }
         }
     }
 
-    private fun forward(q: Packets.Query) {
+    /** Answers a search-engine lookup with its SafeSearch server's addresses. Other record types get none. */
+    private fun forwardSafeSearch(q: Packets.Query, questionEnd: Int, target: String) {
+        val type = Dns.questionType(q.dns, questionEnd)
+        if (type != Dns.TYPE_A && type != Dns.TYPE_AAAA) {
+            write(Packets.reply(q, Dns.noData(q.dns, questionEnd))) // e.g. HTTPS records, whose hints could skip this
+            return
+        }
+        val upstream = exchange(Dns.query(Packets.u16(q.dns, 0), target, type)) ?: return
+        val answer = runCatching { Dns.addressAnswer(q.dns, questionEnd, upstream, type) }.getOrNull() ?: return
+        write(Packets.reply(q, answer))
+    }
+
+    /** Sends a DNS message to the network's servers in turn; the first reply, or null if none answered. */
+    private fun exchange(dns: ByteArray): ByteArray? {
         for (server in currentUpstreams().take(3)) {
             try {
                 DatagramSocket().use { socket ->
                     protect(socket)
                     socket.soTimeout = 4_000
-                    socket.send(DatagramPacket(q.dns, q.dns.size, server, 53))
+                    socket.send(DatagramPacket(dns, dns.size, server, 53))
                     val buf = ByteArray(4_096)
                     val answer = DatagramPacket(buf, buf.size)
                     socket.receive(answer)
-                    write(Packets.reply(q, buf.copyOf(answer.length)))
+                    return buf.copyOf(answer.length)
                 }
-                return
             } catch (_: Exception) {
                 // Timed out or unreachable; try the next server.
             }
         }
+        return null
     }
 
     private fun currentUpstreams(): List<InetAddress> = synchronized(this) {
@@ -243,5 +257,80 @@ internal object Dns {
         Packets.put16(r, 8, 0)
         Packets.put16(r, 10, 0)
         return r
+    }
+
+    const val TYPE_A = 1
+    const val TYPE_AAAA = 28
+    private const val MAX_TTL = 300L
+
+    /** The query's record type (A, AAAA, HTTPS...). */
+    fun questionType(query: ByteArray, questionEnd: Int): Int = Packets.u16(query, questionEnd - 4)
+
+    /** A fresh recursive query for [name] and [type] (class IN). */
+    fun query(id: Int, name: String, type: Int): ByteArray {
+        val out = java.io.ByteArrayOutputStream()
+        out.write(id shr 8 and 0xFF); out.write(id and 0xFF)
+        out.write(0x01); out.write(0x00) // recursion desired
+        out.write(0); out.write(1); repeat(6) { out.write(0) }
+        for (label in name.split('.')) {
+            out.write(label.length); out.write(label.toByteArray(Charsets.US_ASCII))
+        }
+        out.write(0)
+        out.write(type shr 8); out.write(type and 0xFF); out.write(0); out.write(1)
+        return out.toByteArray()
+    }
+
+    /**
+     * Answers [query] (the user's question) with the [type] addresses found in [upstream], an answer for a different
+     * name. Records carry the user's question name, so it looks like a direct answer. Null if [upstream] is unusable.
+     * An empty answer ("no records of that type") is fine.
+     */
+    fun addressAnswer(query: ByteArray, questionEnd: Int, upstream: ByteArray, type: Int): ByteArray? {
+        if (upstream.size < 12 || upstream[2].toInt() and 0x80 == 0) return null
+        if (upstream[3].toInt() and 0x0F != 0) return null // upstream error
+        val qd = Packets.u16(upstream, 4)
+        val an = Packets.u16(upstream, 6)
+        var i = 12
+        repeat(qd) { i = skipName(upstream, i) + 4 }
+        val records = java.io.ByteArrayOutputStream()
+        var count = 0
+        repeat(an) {
+            i = skipName(upstream, i)
+            if (i + 10 > upstream.size) return null
+            val rType = Packets.u16(upstream, i)
+            val ttl = minOf(((Packets.u16(upstream, i + 4).toLong() shl 16) or Packets.u16(upstream, i + 6).toLong()), MAX_TTL)
+            val len = Packets.u16(upstream, i + 8)
+            val data = i + 10
+            if (data + len > upstream.size) return null
+            if (rType == type) {
+                records.write(0xC0); records.write(12) // name: pointer to the question
+                records.write(type shr 8); records.write(type and 0xFF); records.write(0); records.write(1)
+                records.write((ttl shr 24).toInt() and 0xFF); records.write((ttl shr 16).toInt() and 0xFF)
+                records.write((ttl shr 8).toInt() and 0xFF); records.write(ttl.toInt() and 0xFF)
+                records.write(len shr 8); records.write(len and 0xFF)
+                records.write(upstream, data, len)
+                count++
+            }
+            i = data + len
+        }
+        val head = noData(query, questionEnd)
+        Packets.put16(head, 6, count)
+        return head + records.toByteArray()
+    }
+
+    /** "Found, but no records of that type" for the query, echoing its ID and question. */
+    fun noData(query: ByteArray, questionEnd: Int): ByteArray =
+        nxdomain(query, questionEnd).also { it[3] = 0x80.toByte() } // recursion available, no error
+
+    /** The offset just past a (possibly compressed) name starting at [start]. */
+    private fun skipName(m: ByteArray, start: Int): Int {
+        var i = start
+        while (i < m.size) {
+            val len = m[i].toInt() and 0xFF
+            if (len == 0) return i + 1
+            if (len and 0xC0 == 0xC0) return i + 2
+            i += 1 + len
+        }
+        throw IllegalArgumentException("bad name")
     }
 }
