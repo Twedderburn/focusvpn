@@ -41,9 +41,9 @@ Last updated: 2026-11-17
 - [x] Pages install guide with Download button and QR code (live at https://twedderburn.github.io/focusvpn/; scan the QR code once with a real phone)
 - [x] Run snapshotReleasedBlocklists at release (v0.1)
 
-## 5. On the Galaxy S25
-- [ ] Install the signed release APK
-- [ ] pornhub.com fails to load
-- [ ] Google image search is SafeSearch-filtered
-- [ ] Normal browsing works
+## 5. On a real phone (tested on a Galaxy S21, SM-G991W, Android 15; the S25 is still to do)
+- [x] Install the signed release APK (v0.1 over USB)
+- [x] pornhub.com fails to load (Chrome: "This site can't be reached")
+- [x] Google image search is SafeSearch-filtered (www.google.com answers with the SafeSearch server's address, and image search loads; Bing and DuckDuckGo match their safe servers too)
+- [x] Normal browsing works (Wikipedia and Google load in Chrome; github.com resolves)
 - [ ] Filter survives a reboot
