@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -54,7 +55,7 @@ fun protectionState(hasConsent: Boolean, running: Boolean, privateDnsBypass: Boo
 }
 
 @Composable
-fun StatusScreen(onTurnOn: () -> Unit) {
+fun StatusScreen(onTurnOn: () -> Unit, onMore: () -> Unit) {
     val context = LocalContext.current
     val running by DnsFilter.running.collectAsState()
     var hasConsent by remember { mutableStateOf(DnsFilter.hasConsent(context)) }
@@ -83,6 +84,10 @@ fun StatusScreen(onTurnOn: () -> Unit) {
                     Button(onClick = onTurnOn, modifier = Modifier.fillMaxWidth().height(64.dp)) {
                         Text("Turn on the filter", fontSize = 20.sp)
                     }
+                }
+                Spacer(Modifier.height(48.dp))
+                OutlinedButton(onClick = onMore, modifier = Modifier.fillMaxWidth().height(56.dp)) {
+                    Text("Block more sites", fontSize = 18.sp)
                 }
             }
         }

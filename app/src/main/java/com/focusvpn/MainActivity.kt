@@ -5,6 +5,12 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.compose.BackHandler
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
+import com.focusvpn.ui.MoreBlockingScreen
 import com.focusvpn.ui.StatusScreen
 
 class MainActivity : ComponentActivity() {
@@ -16,7 +22,10 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         DnsFilter.lockIn(this)
         setContent {
-            StatusScreen(onTurnOn = ::turnOn)
+            var more by rememberSaveable { mutableStateOf(false) }
+            BackHandler(enabled = more) { more = false }
+            if (more) MoreBlockingScreen(onBack = { more = false })
+            else StatusScreen(onTurnOn = ::turnOn, onMore = { more = true })
         }
     }
 
