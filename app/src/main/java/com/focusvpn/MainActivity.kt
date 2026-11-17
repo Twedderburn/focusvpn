@@ -1,5 +1,6 @@
 package com.focusvpn
 
+import android.Manifest
 import android.net.VpnService
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -19,7 +20,12 @@ import com.focusvpn.ui.StatusScreen
 class MainActivity : ComponentActivity() {
     private val consent = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
         DnsFilter.start(this)
+        // Ask to show notifications once the filter is on, so "Your filter is off" can reach the user later.
+        if (DnsFilter.hasConsent(this) && !FilterAlert.canNotify(this)) notify.launch(Manifest.permission.POST_NOTIFICATIONS)
     }
+    private val notify = registerForActivityResult(ActivityResultContracts.RequestPermission()) { FilterAlert.update(this) }
+    private var askedThisVisit = false
+    private var askedNotify = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -43,6 +49,22 @@ class MainActivity : ComponentActivity() {
     override fun onResume() {
         super.onResume()
         DnsFilter.start(this) // No-op when already running or when Android still needs the user's OK.
+        FilterAlert.update(this)
+        // Covers phones where the filter was OK'd before this permission was asked for. Once per launch.
+        if (SetupStore.isDone(this) && !askedNotify && DnsFilter.hasConsent(this) && !FilterAlert.canNotify(this)) {
+            askedNotify = true
+            notify.launch(Manifest.permission.POST_NOTIFICATIONS)
+        }
+        // The filter was on once and Android wants its OK again: ask straight away, once per visit (PRD §4.4).
+        if (SetupStore.isDone(this) && !askedThisVisit && !DnsFilter.hasConsent(this)) {
+            askedThisVisit = true
+            turnOn()
+        }
+    }
+
+    override fun onStop() {
+        super.onStop()
+        askedThisVisit = false
     }
 
     /** Shows Android's VPN consent dialog if needed, then starts the filter. */

@@ -228,6 +228,7 @@ class BootReceiver : BroadcastReceiver() {
         if (intent.action != Intent.ACTION_BOOT_COMPLETED && intent.action != Intent.ACTION_MY_PACKAGE_REPLACED) return
         DnsFilter.lockIn(context)
         DnsFilter.start(context)
+        FilterAlert.update(context) // If Android wants its OK again, say so rather than stay silently off.
     }
 }
 

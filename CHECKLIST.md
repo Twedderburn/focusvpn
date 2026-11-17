@@ -28,9 +28,9 @@ Last updated: 2026-11-17
 - [x] Hidden Advanced: device-owner lock-in instructions (adb). Tap the status title 7 times. Lock-in now also blocks uninstall; blocking "clear data" is not done yet
 
 ## 3. When protection drops
-- [ ] Notification: "Your filter is off - tap to turn it back on"
-- [ ] Restart after reboot and app update (BootReceiver)
-- [ ] Handle onRevoke (another VPN took over)
+- [x] Notification: "Your filter is off - tap to turn it back on" (checked on the emulator: appears when Android wants its OK again, tap reopens the app and asks, clears once the filter is back)
+- [x] Restart after reboot and app update (BootReceiver) (checked on the emulator: back on after a reboot and after an update, without opening the app)
+- [x] Handle onRevoke (another VPN took over): comes straight back if allowed, otherwise shows the notification (a real second VPN app is checked on the S25)
 
 ## 4. Release
 - [ ] Release keystore at D:\Android\keys\focusvpn.jks (password file outside the repo)

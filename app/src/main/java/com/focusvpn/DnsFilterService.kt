@@ -1,6 +1,10 @@
 package com.focusvpn
 
 import android.content.Intent
+import android.net.ConnectivityManager
+import android.net.LinkProperties
+import android.net.Network
+import android.net.NetworkRequest
 import android.net.VpnService
 import android.os.ParcelFileDescriptor
 import android.os.SystemClock
@@ -24,6 +28,7 @@ class DnsFilterService : VpnService() {
     private var pool: ExecutorService? = null
     private var upstreams: List<InetAddress> = emptyList()
     private var upstreamsAt = 0L
+    private var networkWatch: ConnectivityManager.NetworkCallback? = null
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (tun == null) establish()
@@ -45,6 +50,7 @@ class DnsFilterService : VpnService() {
         }
         if (pfd == null) {
             // No consent (another VPN took over, or it was disconnected). FocusVPN asks again.
+            FilterAlert.update(this)
             stopSelf()
             return
         }
@@ -52,7 +58,22 @@ class DnsFilterService : VpnService() {
         output = FileOutputStream(pfd.fileDescriptor)
         pool = Executors.newFixedThreadPool(4)
         DnsFilter.setRunning(true)
+        watchNetworks()
+        FilterAlert.update(this)
         Thread({ readLoop(pfd) }, "focus-dns").start()
+    }
+
+    /** A phone setting can start sending lookups around the filter at any time; re-check when a network changes. */
+    private fun watchNetworks() {
+        if (networkWatch != null) return
+        val cb = object : ConnectivityManager.NetworkCallback() {
+            override fun onLinkPropertiesChanged(network: Network, lp: LinkProperties) = FilterAlert.update(this@DnsFilterService)
+            override fun onLost(network: Network) = FilterAlert.update(this@DnsFilterService)
+        }
+        runCatching {
+            getSystemService(ConnectivityManager::class.java).registerNetworkCallback(NetworkRequest.Builder().build(), cb)
+            networkWatch = cb
+        }
     }
 
     private fun readLoop(pfd: ParcelFileDescriptor) {
@@ -150,6 +171,8 @@ class DnsFilterService : VpnService() {
         } catch (_: IOException) {
         }
         DnsFilter.setRunning(false)
+        networkWatch?.let { cb -> runCatching { getSystemService(ConnectivityManager::class.java).unregisterNetworkCallback(cb) } }
+        networkWatch = null
     }
 
     override fun onRevoke() {
@@ -157,6 +180,8 @@ class DnsFilterService : VpnService() {
         stopSelf()
         // If Android still lets us run (the user tapped Disconnect but consent remains), come straight back.
         DnsFilter.start(applicationContext)
+        // Otherwise (another app took over) the user has to OK it again: tell them.
+        FilterAlert.update(applicationContext)
     }
 
     override fun onDestroy() {
