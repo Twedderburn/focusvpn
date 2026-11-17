@@ -46,4 +46,4 @@ Last updated: 2026-11-17
 - [x] pornhub.com fails to load (Chrome: "This site can't be reached")
 - [x] Google image search is SafeSearch-filtered (www.google.com answers with the SafeSearch server's address, and image search loads; Bing and DuckDuckGo match their safe servers too)
 - [x] Normal browsing works (Wikipedia and Google load in Chrome; github.com resolves)
-- [ ] Filter survives a reboot
+- [x] Filter survives a reboot (S21: back on without opening the app; pornhub.com still blocked, Google still on SafeSearch)
