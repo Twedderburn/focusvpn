@@ -15,8 +15,8 @@ android {
         applicationId = "com.focusvpn"
         minSdk = 29
         targetSdk = 35
-        versionCode = 1
-        versionName = "0.1"
+        versionCode = 2
+        versionName = "0.2"
     }
 
     // The release key lives outside the repo (PRD §5). The properties file names the keystore, the alias and a

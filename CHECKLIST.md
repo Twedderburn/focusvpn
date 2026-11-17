@@ -49,4 +49,4 @@ Last updated: 2026-11-17
 - [x] Filter survives a reboot (S21: back on without opening the app; pornhub.com still blocked, Google still on SafeSearch)
 
 ## 6. After v0.1
-- [x] Uninstall protection: "Stop FocusVPN being removed" in Block more (3-second hold, then Android's own screen). Checked on the emulator: uninstall is refused while it's on. It can still be switched off in Settings, Device admin apps, where Android shows a warning first. Not in a release yet
+- [x] Uninstall protection: "Stop FocusVPN being removed" in Block more (3-second hold, then Android's own screen). Checked on the emulator: uninstall is refused while it's on. It can still be switched off in Settings, Device admin apps, where Android shows a warning first. Released in v0.2
